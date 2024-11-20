@@ -165,8 +165,8 @@ def start_search():
         chrome_options.add_argument('--disable-gpu')
         chrome_options.add_argument('--lang=ja_JP')
         
-        # 使用 webdriver_manager 的旧方式
-        driver = webdriver.Chrome(ChromeDriverManager().install(), options=chrome_options)
+        # 修改 Chrome WebDriver 的初始化方式
+        driver = webdriver.Chrome(options=chrome_options)
         
         session = Session()
         
