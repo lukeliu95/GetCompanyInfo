@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>企業サイト検索</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+            color: #202124;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            background-color: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 1px 2px 0 rgba(60,64,67,.3), 0 1px 3px 1px rgba(60,64,67,.15);
+            width: 100%;
+            max-width: 600px;
+        }
+        h1 {
+            color: #202124;
+            font-weight: 400;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #5f6368;
+        }
+        input[type="number"] {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #dadce0;
+            border-radius: 4px;
+            font-size: 16px;
+            color: #202124;
+        }
+        button {
+            background-color: #1a73e8;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background-color: #1557b0;
+        }
+        button:disabled {
+            background-color: #dadce0;
+            cursor: not-allowed;
+        }
+        .message {
+            margin-top: 20px;
+            padding: 12px;
+            border-radius: 4px;
+            text-align: center;
+            display: none;
+        }
+        .message.error {
+            background-color: #fce8e6;
+            color: #d93025;
+        }
+        .message.info {
+            background-color: #e8f0fe;
+            color: #1a73e8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>企業サイト検索</h1>
+        <form id="searchForm" onsubmit="startSearch(event)">
+            <div class="form-group">
+                <label for="startIndex">開始位置</label>
+                <input type="number" id="startIndex" name="start_index" value="0" min="0" required>
+            </div>
+            <div class="form-group">
+                <label for="endIndex">終了位置（空白の場合は最後まで）</label>
+                <input type="number" id="endIndex" name="end_index" min="1">
+            </div>
+            <button type="submit" id="submitButton">検索開始</button>
+        </form>
+        <div id="message" class="message"></div>
+    </div>
+
+    <script>
+        async function startSearch(event) {
+            event.preventDefault();
+            const form = event.target;
+            const submitButton = document.getElementById('submitButton');
+            const messageDiv = document.getElementById('message');
+            
+            submitButton.disabled = true;
+            messageDiv.style.display = 'block';
+            messageDiv.className = 'message info';
+            messageDiv.textContent = '検索中...';
+            
+            try {
+                const response = await fetch('/start_search', {
+                    method: 'POST',
+                    body: new FormData(form)
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.redirect) {
+                    window.location.href = data.redirect;
+                } else {
+                    messageDiv.className = 'message error';
+                    messageDiv.textContent = data.error || 'エラーが発生しました';
+                    submitButton.disabled = false;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                messageDiv.className = 'message error';
+                messageDiv.textContent = 'エラーが発生しました';
+                submitButton.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

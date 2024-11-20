@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>検索結果</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+            color: #202124;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 2px 0 rgba(60,64,67,.3), 0 1px 3px 1px rgba(60,64,67,.15);
+            padding: 24px;
+        }
+        h1 {
+            color: #202124;
+            font-weight: 400;
+            margin-bottom: 24px;
+        }
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        select {
+            padding: 8px 16px;
+            border: 1px solid #dadce0;
+            border-radius: 4px;
+            background-color: white;
+            color: #202124;
+            font-size: 14px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        th {
+            background-color: #f8f9fa;
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 500;
+            border-bottom: 2px solid #dadce0;
+            cursor: pointer;
+        }
+        th:hover {
+            background-color: #f1f3f4;
+        }
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #dadce0;
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin-top: 20px;
+        }
+        .pagination a {
+            padding: 8px 16px;
+            text-decoration: none;
+            color: #1a73e8;
+            border-radius: 4px;
+        }
+        .pagination a:hover {
+            background-color: #f1f3f4;
+        }
+        .pagination .active {
+            background-color: #1a73e8;
+            color: white;
+        }
+        .pagination .disabled {
+            color: #dadce0;
+            pointer-events: none;
+        }
+        .sort-icon::after {
+            content: "▼";
+            font-size: 10px;
+            margin-left: 4px;
+            opacity: 0.5;
+        }
+        .sort-icon.asc::after {
+            content: "▲";
+        }
+        a {
+            color: #1a73e8;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .info {
+            color: #5f6368;
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>検索結果</h1>
+        
+        <div class="controls">
+            <div class="info">
+                全{{ total_records }}件中 {{ (page - 1) * per_page + 1 }}-{{ min(page * per_page, total_records) }}件を表示
+            </div>
+            <select onchange="changePerPage(this.value)">
+                <option value="10" {% if per_page == 10 %}selected{% endif %}>10件/ページ</option>
+                <option value="25" {% if per_page == 25 %}selected{% endif %}>25件/ページ</option>
+                <option value="50" {% if per_page == 50 %}selected{% endif %}>50件/ページ</option>
+                <option value="100" {% if per_page == 100 %}selected{% endif %}>100件/ページ</option>
+            </select>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th onclick="sort('keyword')" class="sort-icon {% if sort_by == 'keyword' %}{{ order }}{% endif %}">
+                        キーワード
+                    </th>
+                    <th style="max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" onclick="sort('url')" class="sort-icon {% if sort_by == 'url' %}{{ order }}{% endif %}">
+                        URL
+                    </th>
+                    <th onclick="sort('created_at')" class="sort-icon {% if sort_by == 'created_at' %}{{ order }}{% endif %}">
+                        作成日時
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for result in results %}
+                <tr>
+                    <td>{{ result.keyword }}</td>
+                    <td><a href="{{ result.url }}" target="_blank">{{ result.url }}</a></td>
+                    <td>{{ result.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="pagination">
+            {% if page > 1 %}
+            <a href="{{ url_for('view_results', page=page-1, per_page=per_page, sort_by=sort_by, order=order) }}">前へ</a>
+            {% else %}
+            <span class="disabled">前へ</span>
+            {% endif %}
+
+            {% for p in range(max(1, page-2), min(total_pages+1, page+3)) %}
+            <a href="{{ url_for('view_results', page=p, per_page=per_page, sort_by=sort_by, order=order) }}"
+               class="{% if p == page %}active{% endif %}">
+                {{ p }}
+            </a>
+            {% endfor %}
+
+            {% if page < total_pages %}
+            <a href="{{ url_for('view_results', page=page+1, per_page=per_page, sort_by=sort_by, order=order) }}">次へ</a>
+            {% else %}
+            <span class="disabled">次へ</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <script>
+        function changePerPage(value) {
+            const url = new URL(window.location);
+            url.searchParams.set('per_page', value);
+            url.searchParams.set('page', 1);
+            window.location = url;
+        }
+
+        function sort(column) {
+            const url = new URL(window.location);
+            const currentSort = url.searchParams.get('sort_by');
+            const currentOrder = url.searchParams.get('order');
+            
+            if (currentSort === column) {
+                url.searchParams.set('order', currentOrder === 'asc' ? 'desc' : 'asc');
+            } else {
+                url.searchParams.set('sort_by', column);
+                url.searchParams.set('order', 'asc');
+            }
+            
+            window.location = url;
+        }
+    </script>
+</body>
+</html>
